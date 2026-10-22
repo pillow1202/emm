@@ -1,0 +1,2273 @@
+<!DOCTYPE html>
+
+<html lang="zh-HK">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <title>工時OT計算器 · App</title>
+
+    <style>
+
+        * {
+
+            box-sizing: border-box;
+
+            margin: 0;
+
+            padding: 0;
+
+            -webkit-tap-highlight-color: transparent;
+
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+        }
+
+
+        :root {
+
+            --bg: #f2f5fa;
+
+            --card-bg: #ffffff;
+
+            --primary: #0b2b4b;
+
+            --primary-light: #1a4a7a;
+
+            --accent: #2f80ed;
+
+            --ot-color: #d35400;
+
+            --holiday-color: #8e44ad;
+
+            --text-main: #1c2e44;
+
+            --text-sub: #6b7f95;
+
+            --border: #e2eaf3;
+
+            --shadow: 0 4px 16px rgba(0, 20, 50, 0.06);
+
+            --shadow-lg: 0 12px 32px rgba(0, 20, 50, 0.12);
+
+            --radius: 20px;
+
+            --radius-sm: 14px;
+
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+        }
+
+
+        html, body {
+
+            height: 100%;
+
+            background: var(--bg);
+
+            color: var(--text-main);
+
+            overscroll-behavior-y: none;
+
+        }
+
+
+        body {
+
+            display: flex;
+
+            flex-direction: column;
+
+            max-width: 520px;
+
+            margin: 0 auto;
+
+            position: relative;
+
+            min-height: 100vh;
+
+            min-height: 100dvh;
+
+            box-shadow: 0 0 60px rgba(0,0,0,0.05);
+
+            background: var(--bg);
+
+        }
+
+
+        /* ===== 頂部 App Bar ===== */
+
+        .app-bar {
+
+            background: linear-gradient(135deg, #0b2b4b 0%, #17466f 100%);
+
+            color: #fff;
+
+            padding: 18px 20px 22px;
+
+            border-radius: 0 0 28px 28px;
+
+            box-shadow: 0 6px 20px rgba(11, 43, 75, 0.25);
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 50;
+
+        }
+
+
+        .app-bar-top {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+        }
+
+
+        .app-title {
+
+            font-size: 1.25rem;
+
+            font-weight: 700;
+
+            letter-spacing: 0.3px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+        }
+
+
+        .app-title .icon {
+
+            font-size: 1.4rem;
+
+        }
+
+
+        .contract-pill {
+
+            background: rgba(255,255,255,0.18);
+
+            padding: 5px 12px;
+
+            border-radius: 30px;
+
+            font-size: 0.72rem;
+
+            font-weight: 600;
+
+            letter-spacing: 0.3px;
+
+            backdrop-filter: blur(4px);
+
+            border: 1px solid rgba(255,255,255,0.15);
+
+        }
+
+
+        /* ===== 摘要滑動區 ===== */
+
+        .summary-strip {
+
+            display: flex;
+
+            gap: 12px;
+
+            padding: 18px 20px 6px;
+
+            overflow-x: auto;
+
+            scroll-snap-type: x mandatory;
+
+            scrollbar-width: none;
+
+        }
+
+        .summary-strip::-webkit-scrollbar { display: none; }
+
+
+        .summary-card {
+
+            flex: 0 0 auto;
+
+            scroll-snap-align: start;
+
+            min-width: 150px;
+
+            background: var(--card-bg);
+
+            border-radius: var(--radius);
+
+            padding: 16px 18px;
+
+            box-shadow: var(--shadow);
+
+            border: 1px solid var(--border);
+
+            position: relative;
+
+            overflow: hidden;
+
+        }
+
+
+        .summary-card::after {
+
+            content: '';
+
+            position: absolute;
+
+            right: -10px;
+
+            top: -10px;
+
+            width: 60px;
+
+            height: 60px;
+
+            border-radius: 50%;
+
+            background: rgba(47, 128, 237, 0.06);
+
+        }
+
+
+        .summary-label {
+
+            font-size: 0.7rem;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.6px;
+
+            color: var(--text-sub);
+
+            margin-bottom: 6px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 5px;
+
+        }
+
+
+        .summary-value {
+
+            font-size: 1.85rem;
+
+            font-weight: 800;
+
+            color: var(--primary);
+
+            line-height: 1.1;
+
+        }
+
+
+        .summary-value small {
+
+            font-size: 0.75rem;
+
+            font-weight: 500;
+
+            color: var(--text-sub);
+
+            margin-left: 3px;
+
+        }
+
+
+        /* ===== 記錄列表區 ===== */
+
+        .list-section {
+
+            flex: 1;
+
+            padding: 20px 16px 120px;
+
+            overflow-y: auto;
+
+        }
+
+
+        .list-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 0 4px 12px;
+
+        }
+
+
+        .list-header h2 {
+
+            font-size: 0.95rem;
+
+            font-weight: 700;
+
+            color: var(--text-main);
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+        }
+
+
+        .record-count {
+
+            background: #e2ecfa;
+
+            color: var(--primary);
+
+            font-size: 0.7rem;
+
+            padding: 3px 10px;
+
+            border-radius: 20px;
+
+            font-weight: 600;
+
+        }
+
+
+        /* 記錄卡片 */
+
+        .record-card {
+
+            background: var(--card-bg);
+
+            border-radius: var(--radius);
+
+            padding: 16px;
+
+            margin-bottom: 12px;
+
+            box-shadow: var(--shadow);
+
+            border: 1px solid var(--border);
+
+            display: flex;
+
+            gap: 14px;
+
+            align-items: flex-start;
+
+            position: relative;
+
+            animation: fadeIn 0.25s ease;
+
+        }
+
+
+        @keyframes fadeIn {
+
+            from { opacity: 0; transform: translateY(8px); }
+
+            to { opacity: 1; transform: translateY(0); }
+
+        }
+
+
+        .record-card.is-holiday {
+
+            border-left: 4px solid var(--holiday-color);
+
+            background: linear-gradient(180deg, #fdf7fd 0%, #ffffff 100%);
+
+        }
+
+
+        .record-card.is-work {
+
+            border-left: 4px solid var(--primary);
+
+        }
+
+
+        .date-badge {
+
+            flex: 0 0 auto;
+
+            width: 54px;
+
+            text-align: center;
+
+            background: #f0f5fb;
+
+            border-radius: var(--radius-sm);
+
+            padding: 8px 4px;
+
+            border: 1px solid #e2eaf3;
+
+        }
+
+
+        .date-badge .day {
+
+            font-size: 1.4rem;
+
+            font-weight: 800;
+
+            color: var(--primary);
+
+            line-height: 1;
+
+        }
+
+
+        .date-badge .mon {
+
+            font-size: 0.62rem;
+
+            font-weight: 700;
+
+            color: var(--text-sub);
+
+            text-transform: uppercase;
+
+            margin-top: 3px;
+
+        }
+
+
+        .date-badge .weekday {
+
+            font-size: 0.6rem;
+
+            color: #9aaabb;
+
+            margin-top: 2px;
+
+        }
+
+
+        .record-body {
+
+            flex: 1;
+
+            min-width: 0;
+
+        }
+
+
+        .record-top {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 8px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .record-date-full {
+
+            font-size: 0.82rem;
+
+            font-weight: 600;
+
+            color: var(--text-main);
+
+        }
+
+
+        .status-chip {
+
+            font-size: 0.65rem;
+
+            font-weight: 700;
+
+            padding: 3px 10px;
+
+            border-radius: 20px;
+
+            letter-spacing: 0.3px;
+
+            white-space: nowrap;
+
+        }
+
+        .status-chip.work {
+
+            background: #e6f4ea;
+
+            color: #1e7e34;
+
+        }
+
+        .status-chip.holiday {
+
+            background: #f3e6f3;
+
+            color: var(--holiday-color);
+
+        }
+
+
+        .time-row {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            font-size: 0.88rem;
+
+            color: var(--text-sub);
+
+            margin-bottom: 10px;
+
+        }
+
+        .time-row .time-arrow {
+
+            color: #b8c8d8;
+
+            font-size: 0.8rem;
+
+        }
+
+        .time-row strong {
+
+            color: var(--text-main);
+
+            font-weight: 600;
+
+        }
+
+
+        .metrics-row {
+
+            display: flex;
+
+            gap: 8px;
+
+        }
+
+
+        .metric {
+
+            flex: 1;
+
+            background: #f7fafd;
+
+            border-radius: 12px;
+
+            padding: 8px 10px;
+
+            text-align: center;
+
+            border: 1px solid #eaf1f8;
+
+        }
+
+        .metric.holiday-metric {
+
+            background: #fdf7fd;
+
+            border-color: #f0e4f0;
+
+        }
+
+
+        .metric-label {
+
+            font-size: 0.6rem;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.4px;
+
+            color: #93a5b8;
+
+            margin-bottom: 2px;
+
+        }
+
+
+        .metric-value {
+
+            font-size: 1rem;
+
+            font-weight: 800;
+
+            color: var(--primary);
+
+        }
+
+        .metric-value.ot {
+
+            color: var(--ot-color);
+
+        }
+
+        .metric-value.holiday-text {
+
+            color: var(--holiday-color);
+
+            font-size: 0.85rem;
+
+        }
+
+
+        .delete-icon {
+
+            position: absolute;
+
+            top: 10px;
+
+            right: 10px;
+
+            width: 28px;
+
+            height: 28px;
+
+            border-radius: 50%;
+
+            background: #fef2f2;
+
+            color: #d14545;
+
+            border: none;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 0.85rem;
+
+            cursor: pointer;
+
+            opacity: 0.7;
+
+            transition: 0.15s;
+
+        }
+
+        .delete-icon:hover, .delete-icon:active {
+
+            opacity: 1;
+
+            background: #fde2e2;
+
+        }
+
+
+        /* 空狀態 */
+
+        .empty-state {
+
+            text-align: center;
+
+            padding: 60px 20px;
+
+            color: var(--text-sub);
+
+        }
+
+        .empty-state .emoji {
+
+            font-size: 3rem;
+
+            margin-bottom: 12px;
+
+            opacity: 0.6;
+
+        }
+
+        .empty-state p {
+
+            font-size: 0.9rem;
+
+            line-height: 1.5;
+
+        }
+
+
+        /* ===== 底部導航 ===== */
+
+        .bottom-nav {
+
+            position: fixed;
+
+            bottom: 0;
+
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            width: 100%;
+
+            max-width: 520px;
+
+            background: rgba(255,255,255,0.92);
+
+            backdrop-filter: blur(20px);
+
+            -webkit-backdrop-filter: blur(20px);
+
+            border-top: 1px solid var(--border);
+
+            display: flex;
+
+            justify-content: space-around;
+
+            align-items: center;
+
+            padding: 8px 8px calc(8px + var(--safe-bottom));
+
+            z-index: 100;
+
+            box-shadow: 0 -4px 20px rgba(0,20,50,0.06);
+
+        }
+
+
+        .nav-item {
+
+            flex: 1;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            gap: 3px;
+
+            padding: 6px 4px;
+
+            border: none;
+
+            background: none;
+
+            color: var(--text-sub);
+
+            font-size: 0.62rem;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            border-radius: 14px;
+
+            transition: 0.15s;
+
+            letter-spacing: 0.2px;
+
+        }
+
+        .nav-item .nav-icon {
+
+            font-size: 1.35rem;
+
+            line-height: 1;
+
+        }
+
+        .nav-item:active {
+
+            background: #eef4fa;
+
+            transform: scale(0.96);
+
+        }
+
+        .nav-item.highlight {
+
+            color: var(--primary);
+
+        }
+
+
+        /* 中央新增按鈕 */
+
+        .nav-item.add-main .nav-icon-wrap {
+
+            width: 48px;
+
+            height: 48px;
+
+            background: linear-gradient(135deg, #0b2b4b, #1a4a7a);
+
+            border-radius: 16px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            color: #fff;
+
+            font-size: 1.6rem;
+
+            margin-top: -22px;
+
+            box-shadow: 0 8px 20px rgba(11, 43, 75, 0.35);
+
+            border: 3px solid #fff;
+
+        }
+
+        .nav-item.add-main span.label {
+
+            margin-top: 2px;
+
+        }
+
+
+        /* ===== 全螢幕表單 Modal ===== */
+
+        .modal-overlay {
+
+            position: fixed;
+
+            inset: 0;
+
+            background: rgba(8, 20, 35, 0.55);
+
+            backdrop-filter: blur(4px);
+
+            -webkit-backdrop-filter: blur(4px);
+
+            z-index: 200;
+
+            display: flex;
+
+            align-items: flex-end;
+
+            justify-content: center;
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition: opacity 0.25s ease;
+
+        }
+
+        .modal-overlay.active {
+
+            opacity: 1;
+
+            pointer-events: auto;
+
+        }
+
+
+        .modal-sheet {
+
+            width: 100%;
+
+            max-width: 520px;
+
+            background: #fff;
+
+            border-radius: 28px 28px 0 0;
+
+            padding: 12px 20px calc(24px + var(--safe-bottom));
+
+            transform: translateY(100%);
+
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+
+            max-height: 92vh;
+
+            overflow-y: auto;
+
+        }
+
+        .modal-overlay.active .modal-sheet {
+
+            transform: translateY(0);
+
+        }
+
+
+        .sheet-handle {
+
+            width: 40px;
+
+            height: 5px;
+
+            background: #d5e0ec;
+
+            border-radius: 10px;
+
+            margin: 0 auto 18px;
+
+        }
+
+
+        .sheet-title {
+
+            font-size: 1.2rem;
+
+            font-weight: 800;
+
+            color: var(--primary);
+
+            margin-bottom: 4px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+        }
+
+
+        .sheet-subtitle {
+
+            font-size: 0.8rem;
+
+            color: var(--text-sub);
+
+            margin-bottom: 22px;
+
+        }
+
+
+        .form-group {
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .form-label {
+
+            display: block;
+
+            font-size: 0.72rem;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.5px;
+
+            color: var(--text-sub);
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .form-control {
+
+            width: 100%;
+
+            padding: 15px 16px;
+
+            font-size: 1.05rem;
+
+            border: 2px solid #e2eaf3;
+
+            border-radius: 16px;
+
+            background: #f9fbfd;
+
+            color: var(--text-main);
+
+            transition: 0.2s;
+
+            font-weight: 500;
+
+            -webkit-appearance: none;
+
+            appearance: none;
+
+        }
+
+        .form-control:focus {
+
+            outline: none;
+
+            border-color: var(--accent);
+
+            background: #fff;
+
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.12);
+
+        }
+
+        input[type="date"].form-control,
+
+        input[type="time"].form-control {
+
+            font-family: inherit;
+
+            min-height: 52px;
+
+        }
+
+
+        .time-grid {
+
+            display: flex;
+
+            gap: 12px;
+
+        }
+
+        .time-grid .form-group {
+
+            flex: 1;
+
+            margin-bottom: 0;
+
+        }
+
+
+        .modal-actions {
+
+            display: flex;
+
+            gap: 12px;
+
+            margin-top: 26px;
+
+        }
+
+
+        .btn-block {
+
+            flex: 1;
+
+            padding: 16px;
+
+            font-size: 1rem;
+
+            font-weight: 700;
+
+            border-radius: 18px;
+
+            border: none;
+
+            cursor: pointer;
+
+            transition: 0.15s;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 6px;
+
+            letter-spacing: 0.2px;
+
+        }
+
+        .btn-block:active {
+
+            transform: scale(0.97);
+
+        }
+
+        .btn-primary-block {
+
+            background: linear-gradient(135deg, #0b2b4b, #1a4a7a);
+
+            color: #fff;
+
+            box-shadow: 0 8px 20px -6px rgba(11, 43, 75, 0.4);
+
+        }
+
+        .btn-holiday-block {
+
+            background: linear-gradient(135deg, #8e44ad, #6f2e6f);
+
+            color: #fff;
+
+            box-shadow: 0 8px 20px -6px rgba(142, 68, 173, 0.4);
+
+        }
+
+        .btn-ghost-block {
+
+            background: #eef4fa;
+
+            color: var(--primary);
+
+            border: 1.5px solid #d5e3f0;
+
+        }
+
+
+        /* 設定面板中的小按鈕 */
+
+        .tool-row {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 6px;
+
+        }
+
+        .btn-tool {
+
+            flex: 1;
+
+            padding: 13px;
+
+            font-size: 0.88rem;
+
+            font-weight: 600;
+
+            border-radius: 14px;
+
+            border: 1.5px solid #d5e3f0;
+
+            background: #f9fbfd;
+
+            color: var(--primary);
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 6px;
+
+            transition: 0.15s;
+
+        }
+
+        .btn-tool:active {
+
+            background: #eef4fa;
+
+            transform: scale(0.97);
+
+        }
+
+        .btn-tool.excel {
+
+            background: #e6f4ea;
+
+            border-color: #b7dfc3;
+
+            color: #1e7e34;
+
+        }
+
+        .btn-tool.danger {
+
+            background: #fdeeee;
+
+            border-color: #f3c9c9;
+
+            color: #c0392b;
+
+        }
+
+
+        /* 桌面端微調 */
+
+        @media (min-width: 521px) {
+
+            body {
+
+                border-radius: 32px;
+
+                margin: 20px auto;
+
+                min-height: calc(100vh - 40px);
+
+                min-height: calc(100dvh - 40px);
+
+                overflow: hidden;
+
+            }
+
+            .bottom-nav {
+
+                border-radius: 0 0 32px 32px;
+
+            }
+
+        }
+
+
+        .list-section::-webkit-scrollbar { width: 0; }
+
+    </style>
+
+</head>
+
+<body>
+
+
+    <!-- ===== 頂部 App Bar ===== -->
+
+    <header class="app-bar">
+
+        <div class="app-bar-top">
+
+            <div class="app-title">
+
+                <span class="icon">⏱️</span>
+
+                <span>工時OT計算</span>
+
+            </div>
+
+            <div class="contract-pill">合約 10h/天</div>
+
+        </div>
+
+    </header>
+
+
+    <!-- ===== 摘要滑動區 ===== -->
+
+    <div class="summary-strip">
+
+        <div class="summary-card">
+
+            <div class="summary-label">📊 本週 OT</div>
+
+            <div class="summary-value" id="weeklyOT">0.00<small>小時</small></div>
+
+        </div>
+
+        <div class="summary-card">
+
+            <div class="summary-label">📈 本月 OT</div>
+
+            <div class="summary-value" id="monthlyOT">0.00<small>小時</small></div>
+
+        </div>
+
+        <div class="summary-card">
+
+            <div class="summary-label">📝 總記錄</div>
+
+            <div class="summary-value" id="totalCount">0<small>筆</small></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===== 記錄列表 ===== -->
+
+    <main class="list-section">
+
+        <div class="list-header">
+
+            <h2>📋 每日記錄</h2>
+
+            <span class="record-count" id="recordCountBadge">0 筆</span>
+
+        </div>
+
+        <div id="recordList">
+
+            <!-- 動態生成卡片 -->
+
+        </div>
+
+    </main>
+
+
+    <!-- ===== 底部導航 ===== -->
+
+    <nav class="bottom-nav">
+
+        <button class="nav-item" id="navExportBtn">
+
+            <span class="nav-icon">📥</span>
+
+            <span>匯出</span>
+
+        </button>
+
+        <button class="nav-item add-main" id="navAddBtn">
+
+            <div class="nav-icon-wrap">＋</div>
+
+            <span class="label">新增</span>
+
+        </button>
+
+        <button class="nav-item" id="navSettingsBtn">
+
+            <span class="nav-icon">⚙️</span>
+
+            <span>設定</span>
+
+        </button>
+
+    </nav>
+
+
+    <!-- ===== 新增記錄 Modal ===== -->
+
+    <div class="modal-overlay" id="addModal">
+
+        <div class="modal-sheet">
+
+            <div class="sheet-handle"></div>
+
+            <div class="sheet-title">➕ 新增記錄</div>
+
+            <div class="sheet-subtitle">輸入日期與上下班時間，或直接標記為放假日</div>
+
+
+            <div class="form-group">
+
+                <label class="form-label">📅 日期</label>
+
+                <input type="date" id="workDate" class="form-control">
+
+            </div>
+
+
+            <div class="time-grid">
+
+                <div class="form-group">
+
+                    <label class="form-label">🕘 上班</label>
+
+                    <input type="time" id="startTime" class="form-control" value="09:00">
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">🕕 下班</label>
+
+                    <input type="time" id="endTime" class="form-control" value="19:00">
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button class="btn-block btn-primary-block" id="addRecordBtn">➕ 新增記錄</button>
+
+                <button class="btn-block btn-holiday-block" id="addHolidayBtn">🏖️ 放假</button>
+
+            </div>
+
+            <div class="modal-actions" style="margin-top: 10px;">
+
+                <button class="btn-block btn-ghost-block" id="closeAddModal">取消</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===== 設定 Modal ===== -->
+
+    <div class="modal-overlay" id="settingsModal">
+
+        <div class="modal-sheet">
+
+            <div class="sheet-handle"></div>
+
+            <div class="sheet-title">⚙️ 設定與工具</div>
+
+            <div class="sheet-subtitle">管理你的資料與匯出檔案</div>
+
+
+            <div style="background:#f7fafd; border-radius:16px; padding:16px; margin-bottom:18px; border:1px solid var(--border);">
+
+                <div style="font-size:0.78rem; font-weight:700; color:var(--text-sub); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">合約標準</div>
+
+                <div style="font-size:1.5rem; font-weight:800; color:var(--primary);">10 小時 / 天</div>
+
+                <div style="font-size:0.75rem; color:var(--text-sub); margin-top:4px;">每日總工時減去10小時即為OT，不足10小時以0計算</div>
+
+            </div>
+
+
+            <div style="background:#f0f7ff; border-radius:14px; padding:12px 14px; margin-bottom:16px; border:1px solid #d5e3f0; display:flex; align-items:center; gap:8px;">
+
+                <span style="font-size:1.1rem;">💾</span>
+
+                <span style="font-size:0.78rem; color:#3e5f7e; line-height:1.4;">記錄已自動保存在此瀏覽器中，重新整理或關閉再開都不會消失。</span>
+
+            </div>
+
+
+            <div class="tool-row">
+
+                <button class="btn-tool excel" id="exportExcelBtn">📥 匯出 Excel (CSV)</button>
+
+            </div>
+
+            <div class="tool-row">
+
+                <button class="btn-tool danger" id="resetBtn">🗑️ 清除所有記錄</button>
+
+            </div>
+
+
+            <div class="modal-actions" style="margin-top: 22px;">
+
+                <button class="btn-block btn-ghost-block" id="closeSettingsModal">關閉</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        (function(){
+
+            // ===== 常數 =====
+
+            const CONTRACT_HOURS = 10;
+
+            const STORAGE_KEY = 'work_ot_records_v1';
+
+
+            // ===== 數據 =====
+
+            let records = [];
+
+
+            // ===== DOM =====
+
+            const recordListEl = document.getElementById('recordList');
+
+            const weeklyOTEl = document.getElementById('weeklyOT');
+
+            const monthlyOTEl = document.getElementById('monthlyOT');
+
+            const totalCountEl = document.getElementById('totalCount');
+
+            const recordCountBadgeEl = document.getElementById('recordCountBadge');
+
+
+            const addModal = document.getElementById('addModal');
+
+            const settingsModal = document.getElementById('settingsModal');
+
+
+            const workDateInput = document.getElementById('workDate');
+
+            const startTimeInput = document.getElementById('startTime');
+
+            const endTimeInput = document.getElementById('endTime');
+
+
+            // ===== 持久化 =====
+
+            function saveToStorage() {
+
+                try {
+
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+
+                } catch (e) {
+
+                    console.warn('儲存失敗', e);
+
+                }
+
+            }
+
+
+            function loadFromStorage() {
+
+                try {
+
+                    const raw = localStorage.getItem(STORAGE_KEY);
+
+                    if (raw) {
+
+                        const parsed = JSON.parse(raw);
+
+                        if (Array.isArray(parsed)) records = parsed;
+
+                    }
+
+                } catch (e) {
+
+                    console.warn('載入失敗', e);
+
+                }
+
+            }
+
+
+            // ===== 工具 =====
+
+            function generateId() {
+
+                return Date.now() + '-' + Math.random().toString(36).substr(2, 8);
+
+            }
+
+
+            function pad(n) {
+
+                return n.toString().padStart(2, '0');
+
+            }
+
+
+            function formatDateFull(dateStr) {
+
+                if (!dateStr) return '';
+
+                const [y, m, d] = dateStr.split('-');
+
+                return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+
+            }
+
+
+            function getWeekdayCN(dateStr) {
+
+                const days = ['週日','週一','週二','週三','週四','週五','週六'];
+
+                const date = new Date(dateStr + 'T00:00:00');
+
+                if (isNaN(date.getTime())) return '';
+
+                return days[date.getDay()];
+
+            }
+
+
+            function getWeekKey(dateStr) {
+
+                const date = new Date(dateStr + 'T00:00:00');
+
+                if (isNaN(date.getTime())) return 'invalid';
+
+                const tempDate = new Date(date);
+
+                const day = tempDate.getDay();
+
+                const diff = (day === 0 ? -6 : 1 - day);
+
+                const monday = new Date(tempDate);
+
+                monday.setDate(tempDate.getDate() + diff);
+
+                monday.setHours(0,0,0,0);
+
+                const year = monday.getFullYear();
+
+                const firstJan = new Date(year, 0, 1);
+
+                const firstMonday = new Date(firstJan);
+
+                const janDay = firstJan.getDay();
+
+                if (janDay !== 1) {
+
+                    const daysToAdd = (janDay === 0 ? 1 : 8 - janDay);
+
+                    firstMonday.setDate(firstJan.getDate() + daysToAdd);
+
+                }
+
+                if (monday < firstMonday) {
+
+                    const prevYear = year - 1;
+
+                    const prevFirstJan = new Date(prevYear, 0, 1);
+
+                    const prevFirstMonday = new Date(prevFirstJan);
+
+                    const prevJanDay = prevFirstJan.getDay();
+
+                    if (prevJanDay !== 1) {
+
+                        const daysToAdd = (prevJanDay === 0 ? 1 : 8 - prevJanDay);
+
+                        prevFirstMonday.setDate(prevFirstJan.getDate() + daysToAdd);
+
+                    }
+
+                    const diffDays = Math.floor((monday - prevFirstMonday) / (24*60*60*1000));
+
+                    const weekNum = Math.floor(diffDays / 7) + 1;
+
+                    return `${prevYear}-W${pad(weekNum)}`;
+
+                } else {
+
+                    const diffDays = Math.floor((monday - firstMonday) / (24*60*60*1000));
+
+                    const weekNum = Math.floor(diffDays / 7) + 1;
+
+                    return `${year}-W${pad(weekNum)}`;
+
+                }
+
+            }
+
+
+            function getMonthKey(dateStr) {
+
+                return dateStr ? dateStr.slice(0, 7) : '';
+
+            }
+
+
+            function calcHoursBetween(start, end) {
+
+                if (!start || !end) return 0;
+
+                const [startH, startM] = start.split(':').map(Number);
+
+                const [endH, endM] = end.split(':').map(Number);
+
+                let startMinutes = startH * 60 + startM;
+
+                let endMinutes = endH * 60 + endM;
+
+                if (endMinutes < startMinutes) endMinutes += 24 * 60;
+
+                return (endMinutes - startMinutes) / 60;
+
+            }
+
+
+            function computeRecordHours(record) {
+
+                if (record.type === 'holiday') return { total: 0, ot: 0 };
+
+                const totalHours = calcHoursBetween(record.start, record.end);
+
+                const ot = Math.max(0, totalHours - CONTRACT_HOURS);
+
+                return {
+
+                    total: Math.round(totalHours * 100) / 100,
+
+                    ot: Math.round(ot * 100) / 100
+
+                };
+
+            }
+
+
+            // ===== 渲染列表 =====
+
+            function renderList() {
+
+                if (!records.length) {
+
+                    recordListEl.innerHTML = `
+
+                        <div class="empty-state">
+
+                            <div class="emoji">📭</div>
+
+                            <p>還沒有記錄<br>點擊下方「＋」新增你的第一筆工時或放假日</p>
+
+                        </div>
+
+                    `;
+
+                    updateSummary();
+
+                    updateCounts();
+
+                    return;
+
+                }
+
+
+                const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date) || (a.type||'').localeCompare(b.type||''));
+
+
+                let html = '';
+
+                sorted.forEach(rec => {
+
+                    const isHoliday = rec.type === 'holiday';
+
+                    const d = rec.date.split('-');
+
+                    const dayNum = d[2] ? d[2].replace(/^0/, '') : '';
+
+                    const monNum = d[1] ? d[1].replace(/^0/, '') : '';
+
+                    const weekday = getWeekdayCN(rec.date);
+
+
+                    let total = 0, ot = 0;
+
+                    if (!isHoliday) {
+
+                        const c = computeRecordHours(rec);
+
+                        total = c.total;
+
+                        ot = c.ot;
+
+                    }
+
+
+                    const statusChip = isHoliday
+
+                        ? '<span class="status-chip holiday">🏖️ 放假</span>'
+
+                        : '<span class="status-chip work">✅ 上班</span>';
+
+
+                    let timeRowHtml = '';
+
+                    if (isHoliday) {
+
+                        timeRowHtml = `<div class="time-row"><span style="color:#8e44ad; font-weight:600;">今日放假 · 不計算工時</span></div>`;
+
+                    } else {
+
+                        timeRowHtml = `
+
+                            <div class="time-row">
+
+                                <span>🕘</span> <strong>${rec.start}</strong>
+
+                                <span class="time-arrow">→</span>
+
+                                <span>🕕</span> <strong>${rec.end}</strong>
+
+                            </div>
+
+                        `;
+
+                    }
+
+
+                    let metricsHtml = '';
+
+                    if (isHoliday) {
+
+                        metricsHtml = `
+
+                            <div class="metrics-row">
+
+                                <div class="metric holiday-metric">
+
+                                    <div class="metric-label">總工時</div>
+
+                                    <div class="metric-value holiday-text">—</div>
+
+                                </div>
+
+                                <div class="metric holiday-metric">
+
+                                    <div class="metric-label">OT</div>
+
+                                    <div class="metric-value holiday-text">—</div>
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+                    } else {
+
+                        const otDisplay = ot > 0
+
+                            ? `<div class="metric-value ot">+${ot.toFixed(2)}</div>`
+
+                            : `<div class="metric-value" style="color:#7b8b9a;">0.00</div>`;
+
+                        metricsHtml = `
+
+                            <div class="metrics-row">
+
+                                <div class="metric">
+
+                                    <div class="metric-label">總工時</div>
+
+                                    <div class="metric-value">${total.toFixed(2)}</div>
+
+                                </div>
+
+                                <div class="metric">
+
+                                    <div class="metric-label">OT</div>
+
+                                    ${otDisplay}
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+                    }
+
+
+                    html += `
+
+                        <div class="record-card ${isHoliday ? 'is-holiday' : 'is-work'}">
+
+                            <div class="date-badge">
+
+                                <div class="day">${dayNum}</div>
+
+                                <div class="mon">${monNum}月</div>
+
+                                <div class="weekday">${weekday}</div>
+
+                            </div>
+
+                            <div class="record-body">
+
+                                <div class="record-top">
+
+                                    <span class="record-date-full">${formatDateFull(rec.date)}</span>
+
+                                    ${statusChip}
+
+                                </div>
+
+                                ${timeRowHtml}
+
+                                ${metricsHtml}
+
+                            </div>
+
+                            <button class="delete-icon" data-id="${rec.id}" aria-label="刪除">✕</button>
+
+                        </div>
+
+                    `;
+
+                });
+
+
+                recordListEl.innerHTML = html;
+
+
+                recordListEl.querySelectorAll('.delete-icon').forEach(btn => {
+
+                    btn.addEventListener('click', (e) => {
+
+                        const id = e.currentTarget.dataset.id;
+
+                        if (confirm('確定刪除這筆記錄嗎？')) {
+
+                            records = records.filter(r => r.id !== id);
+
+                            saveToStorage();
+
+                            renderList();
+
+                        }
+
+                    });
+
+                });
+
+
+                updateSummary();
+
+                updateCounts();
+
+            }
+
+
+            // ===== 摘要 =====
+
+            function updateSummary() {
+
+                const today = new Date();
+
+                const todayStr = today.toISOString().slice(0, 10);
+
+                const currentWeekKey = getWeekKey(todayStr);
+
+                const currentMonthKey = getMonthKey(todayStr);
+
+
+                let weeklyOT = 0, monthlyOT = 0;
+
+
+                records.forEach(rec => {
+
+                    if (rec.type === 'holiday') return;
+
+                    const { ot } = computeRecordHours(rec);
+
+                    if (ot <= 0) return;
+
+                    if (getWeekKey(rec.date) === currentWeekKey) weeklyOT += ot;
+
+                    if (getMonthKey(rec.date) === currentMonthKey) monthlyOT += ot;
+
+                });
+
+
+                weeklyOTEl.innerHTML = weeklyOT.toFixed(2) + '<small>小時</small>';
+
+                monthlyOTEl.innerHTML = monthlyOT.toFixed(2) + '<small>小時</small>';
+
+            }
+
+
+            function updateCounts() {
+
+                totalCountEl.innerHTML = records.length + '<small>筆</small>';
+
+                recordCountBadgeEl.textContent = records.length + ' 筆';
+
+            }
+
+
+            // ===== Modal 控制 =====
+
+            function openModal(el) {
+
+                el.classList.add('active');
+
+            }
+
+            function closeModal(el) {
+
+                el.classList.remove('active');
+
+            }
+
+
+            // ===== 新增上班 =====
+
+            function addWorkRecord() {
+
+                const date = workDateInput.value;
+
+                const start = startTimeInput.value;
+
+                const end = endTimeInput.value;
+
+                if (!date || !start || !end) {
+
+                    alert('請填寫日期、上班及下班時間');
+
+                    return;
+
+                }
+
+                const existing = records.find(r => r.date === date && r.type === 'holiday');
+
+                if (existing && !confirm('該日已有放假記錄，仍要新增上班記錄？')) return;
+
+
+                records.push({ id: generateId(), date, start, end, type: 'work' });
+
+                saveToStorage();
+
+                renderList();
+
+                closeModal(addModal);
+
+            }
+
+
+            // ===== 新增放假 =====
+
+            function addHolidayRecord() {
+
+                const date = workDateInput.value;
+
+                if (!date) {
+
+                    alert('請選擇日期');
+
+                    return;
+
+                }
+
+                const existing = records.find(r => r.date === date);
+
+                if (existing) {
+
+                    if (existing.type === 'holiday') {
+
+                        alert('該日已是放假記錄');
+
+                        return;
+
+                    }
+
+                    if (!confirm('該日已有上班記錄，仍要新增放假記錄？')) return;
+
+                }
+
+                records.push({ id: generateId(), date, type: 'holiday' });
+
+                saveToStorage();
+
+                renderList();
+
+                closeModal(addModal);
+
+            }
+
+
+            // ===== 清除 =====
+
+            function resetAll() {
+
+                if (!records.length) {
+
+                    closeModal(settingsModal);
+
+                    return;
+
+                }
+
+                if (!confirm('確定要清除所有記錄嗎？此操作無法復原。')) return;
+
+                records = [];
+
+                saveToStorage();
+
+                renderList();
+
+                closeModal(settingsModal);
+
+            }
+
+
+            // ===== 匯出 CSV =====
+
+            function exportToExcel() {
+
+                if (records.length === 0) {
+
+                    alert('沒有記錄可匯出');
+
+                    return;
+
+                }
+
+
+                const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date) || (a.type || '').localeCompare(b.type || ''));
+
+
+                const headers = ['日期', '上班時間', '下班時間', '總工時(小時)', 'OT(小時)', '週次', '月份', '狀態'];
+
+                const rows = sorted.map(rec => {
+
+                    const isHoliday = rec.type === 'holiday';
+
+                    let total = 0, ot = 0;
+
+                    if (!isHoliday) {
+
+                        const c = computeRecordHours(rec);
+
+                        total = c.total;
+
+                        ot = c.ot;
+
+                    }
+
+                    return [
+
+                        rec.date,
+
+                        isHoliday ? '—' : rec.start,
+
+                        isHoliday ? '—' : rec.end,
+
+                        isHoliday ? '0.00' : total.toFixed(2),
+
+                        isHoliday ? '0.00' : ot.toFixed(2),
+
+                        getWeekKey(rec.date),
+
+                        getMonthKey(rec.date),
+
+                        isHoliday ? '放假' : '上班'
+
+                    ];
+
+                });
+
+
+                const totalOT = sorted.reduce((sum, rec) => {
+
+                    if (rec.type === 'holiday') return sum;
+
+                    const { ot } = computeRecordHours(rec);
+
+                    return sum + ot;
+
+                }, 0).toFixed(2);
+
+
+                rows.push([]);
+
+                rows.push(['總OT合計', '', '', '', totalOT, '', '', '']);
+
+
+                const csvContent = [
+
+                    headers.join(','),
+
+                    ...rows.map(row => row.map(cell => {
+
+                        if (cell === undefined || cell === null) return '';
+
+                        const str = String(cell);
+
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+
+                            return `"${str.replace(/"/g, '""')}"`;
+
+                        }
+
+                        return str;
+
+                    }).join(','))
+
+                ].join('\n');
+
+
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+                const link = document.createElement('a');
+
+                const url = URL.createObjectURL(blob);
+
+                link.setAttribute('href', url);
+
+                link.setAttribute('download', `工時OT記錄_${new Date().toISOString().slice(0,10)}.csv`);
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(url);
+
+            }
+
+
+            // ===== 初始化 =====
+
+            function init() {
+
+                // 先載入儲存資料
+
+                loadFromStorage();
+
+
+                const today = new Date().toISOString().slice(0, 10);
+
+                workDateInput.value = today;
+
+
+                // 導航事件
+
+                document.getElementById('navAddBtn').addEventListener('click', () => openModal(addModal));
+
+                document.getElementById('navSettingsBtn').addEventListener('click', () => openModal(settingsModal));
+
+                document.getElementById('navExportBtn').addEventListener('click', exportToExcel);
+
+
+                // Modal 關閉
+
+                document.getElementById('closeAddModal').addEventListener('click', () => closeModal(addModal));
+
+                document.getElementById('closeSettingsModal').addEventListener('click', () => closeModal(settingsModal));
+
+
+                // 表單動作
+
+                document.getElementById('addRecordBtn').addEventListener('click', addWorkRecord);
+
+                document.getElementById('addHolidayBtn').addEventListener('click', addHolidayRecord);
+
+                document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+                document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+
+
+                // 點擊背景關閉 Modal
+
+                addModal.addEventListener('click', e => { if (e.target === addModal) closeModal(addModal); });
+
+                settingsModal.addEventListener('click', e => { if (e.target === settingsModal) closeModal(settingsModal); });
+
+
+                // 初次渲染
+
+                renderList();
+
+                updateCounts();
+
+            }
+
+
+            init();
+
+        })();
+
+    </script>
+
+</body>
+
+</html>
